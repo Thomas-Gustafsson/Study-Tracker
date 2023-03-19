@@ -1,6 +1,7 @@
 # Written by Thomas Gustafsson
-# Last updated 2023-03-18
+# Last updated 2023-03-19
 import json
+from datetime import datetime
 
 # define the data structure to store course information
 courses = {}
@@ -18,9 +19,10 @@ def add_course():
     print("│              ADD NEW COURSE              │")
     print("└──────────────────────────────────────────┘\n")
     name = input("Enter the name of the course: ")
-    credits = int(input("Enter the number of credit hours for the course: "))
-    duration = int(input("Enter the duration of the course in weeks: "))
-    courses[name] = {"credits": credits, "study_time": 0, "duration": duration}
+    credits = float(input("Enter the number of credits for the course: "))
+    duration = float(input("Enter the duration of the course in weeks: "))
+    start_date = input("Enter the start date of the course (yyyy-mm-dd): ")
+    courses[name] = {"credits": credits, "study_time": 0, "duration": duration, "start_date": start_date}
     save_data()
     print("Course added successfully!")
     input("\nPress Enter to continue...")
@@ -64,32 +66,42 @@ def add_study_time():
     course_name = list(courses.keys())[course_num-1]
 
     # Prompt user to enter study time
-    study_time = int(input("Enter study time in minutes: "))
+    hours = int(input("First enter study time in hours: "))
+    minutes = int(input("Enter remaining study time minutes: "))
+    study_time = hours * 60 + minutes
 
     # Update the study time for the selected course
     courses[course_name]['study_time'] += study_time
     save_data()
-    print(f"{study_time} minutes of study time added for {course_name}.")
+    print(f"{hours} hours and {minutes} minutes of study time added for {course_name}.")
     input("\nPress Enter to continue...")
+
 
 # define a function to display the total study time for each course and overall
 def display_study_time():
     print("\n┌─────────────────────────────────────────────────────────────┐")
     print("│                         STUDY TIME                          │")
     print("└─────────────────────────────────────────────────────────────┘\n")
-    print("{:<25} {:<15} {:<15} {:<10} {:<15}".format("COURSE", "STUDY TIME", "CREDITS", "TIME/CR", "EXPECTED TIME"))
-    print("{:<25} {:<15} {:<15} {:<10} {:<15}".format("------", "----------", "-------", "-------", "-------------"))
+    print("{:<25} {:<15} {:<15} {:<15} {:<20}".format("COURSE", "STUDY TIME", "CREDITS", "TIME/CR", "EXPECTED TIME/CR"))
+    print("{:<25} {:<15} {:<15} {:<15} {:<20}".format("------", "----------", "-------", "-------", "-------------"))
     total_time = 0
     for name, info in courses.items():
         time = info["study_time"]
         credits = info["credits"]
         duration = info["duration"]
+        start_date = datetime.strptime(info["start_date"], '%Y-%m-%d').date()
+        days_since_start = (datetime.now().date() - start_date).days
         total_time += time
         time_per_credit = round(time/(credits*60), 2)
-        expected_time = round((credits/1.5) * 40, 2)
-        print("{:<25} {:<15} {:<15} {:<10} {:<15}".format(name, time, credits, time_per_credit, expected_time))
-    print("\nTotal study time: {} minutes".format(total_time))
+        expected_time = round(((((credits/1.5)*40)/duration)/7) * days_since_start, 2)
+        study_time_str = f"{time//60}h {time%60}m"
+        time_per_credit_str = f"{time_per_credit:.2f}h"
+        expected_time_str = f"{expected_time:.2f}h"
+        print("{:<25} {:<15} {:<15} {:<15} {:<20}".format(name, study_time_str, credits, time_per_credit_str, expected_time_str))
+    total_time_str = f"{total_time//60}h {total_time%60}m"
+    print("\nTotal study time: {}".format(total_time_str))
     input("\nPress Enter to continue...")
+
 
 # define a function to save the data to a JSON file
 def save_data():
@@ -102,7 +114,7 @@ while True:
     print("├───────────────────────────────────────┤")
     print("│ Enter 'create' to create a course     │")
     print("│ Enter 'add' to add study time         │")
-    print("│ Enter 'display' to display study time │")
+    print("│ Enter 'display' to display overview   │")
     print("│                                       │")
     print("│ Enter 'delete' to delete a course     │")
     print("│ Enter 'exit' to exit the program      │")
@@ -110,7 +122,7 @@ while True:
 
     action = input("Your choice: ")
 
-    if action == "new":
+    if action == "create":
         add_course()
     elif action == "add":
         add_study_time()
@@ -118,9 +130,7 @@ while True:
         delete_course()
     elif action == "display":
         display_study_time()
-    elif action == "graph":
-        graph_study_time()
-    elif action == "quit":
+    elif action == "exit":
         break
     else:
         print("\nInvalid action. Please try again.")
